@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"/>
+  <title>Telaio2D Web — Guida</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 900px; margin: 2rem auto; line-height: 1.6; }
+    code { background:#f3f3f3; padding:.15rem .35rem; border-radius:6px; }
+    h1,h2 { margin-top: 1.6rem; }
+  </style>
+</head>
+<body>
+  <h1>Telaio2D Web (Streamlit + OpenSeesPy) — Come usare l’app</h1>
+
+  <h2>1) Prepara l’XLSX</h2>
+  <p>Crea un file con fogli: <code>nodes</code>, <code>elements</code>, <code>properties</code>, <code>load_cases</code>, <code>restraints</code>, <code>node_loads</code>.
+  Opzionali: <code>dist_loads</code>, <code>masses</code>.</p>
+
+  <h2>2) Carica e modifica</h2>
+  <p>Apri l’app e carica l’XLSX. Puoi modificare le tabelle direttamente nel browser.</p>
+
+  <h2>3) Valida</h2>
+  <p>Premi <b>Valida modello</b> per controllare che le colonne minime siano presenti.</p>
+
+  <h2>4) Esegui l’analisi</h2>
+  <p>Scegli il caso di carico e premi <b>Solve ▸ Linear Static</b>.</p>
+
+  <h2>5) Scarica i risultati</h2>
+  <p>Premi <b>Scarica XLSX (con risultati)</b> per ottenere anche i fogli <code>results_nodal</code> e <code>results_elements</code>.</p>
+
+  <h2>Nota su carichi trapezoidali</h2>
+  <p>I carichi distribuiti trapezoidali sono approssimati come somma di più carichi uniformi:
+     usa lo slider “Segmenti per carico trapezoidale” per aumentare l’accuratezza.</p>
+</body>
+</html>
