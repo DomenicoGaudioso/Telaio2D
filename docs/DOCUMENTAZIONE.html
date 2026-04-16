@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telaio2D Web — Documentazione Tecnica</title>
+    <style>
+        :root {
+            --primary: #1a3a5c;
+            --accent: #2980b9;
+            --accent2: #27ae60;
+            --danger: #e74c3c;
+            --warn: #f39c12;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dee2e6;
+            --text: #212529;
+            --text-light: #6c757d;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .hero {
+            background: linear-gradient(135deg, #1a3a5c 0%, #2c5f8a 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--bg);
+            clip-path: ellipse(60% 100% at 50% 100%);
+        }
+        .hero h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        .hero .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+        .hero .meta {
+            margin-top: 20px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin: 2px;
+        }
+        .badge-norm { background: #27ae60; color: white; }
+        .badge-ver { background: var(--accent); color: white; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .toc {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin: -30px 20px 30px;
+            position: relative;
+            z-index: 10;
+        }
+        .toc h2 { margin-top: 0; color: var(--primary); font-size: 1.3em; }
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .toc a {
+            color: var(--accent);
+            text-decoration: none;
+            padding: 5px 10px;
+            display: block;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        .toc a:hover { background: #eef4fa; }
+        section {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        section h2 {
+            color: var(--primary);
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        section h3 { color: var(--accent); margin-top: 25px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.95em;
+        }
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        tr:nth-child(even) { background: #f8fafc; }
+        tr:hover { background: #eef4fa; }
+        .formula-box {
+            background: #f4f6f9;
+            border-left: 4px solid var(--accent);
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+            font-family: 'Times New Roman', serif;
+        }
+        .formula-box .label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.85em;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+        .formula {
+            font-size: 1.3em;
+            color: var(--primary);
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .card h4 {
+            margin: 0 0 10px;
+            color: var(--primary);
+        }
+        .card p { margin: 0; color: var(--text-light); font-size: 0.9em; }
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success-box {
+            background: #e8f8f0;
+            border-left: 4px solid var(--accent2);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning-box {
+            background: #fef5e7;
+            border-left: 4px solid var(--warn);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .svg-container {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #fafbfc;
+            border-radius: 10px;
+        }
+        ul, ol { margin: 10px 0; padding-left: 25px; }
+        li { margin: 5px 0; }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.85em;
+        }
+        footer {
+            background: var(--primary);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        footer p { margin: 5px 0; opacity: 0.8; font-size: 0.9em; }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.8em; }
+            section { padding: 20px; }
+            .toc-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>Telaio2D Web</h1>
+    <div class="subtitle">Analisi statica lineare di telai 2D con OpenSeesPy</div>
+    <div class="meta">
+        <span class="badge badge-norm">NTC 2018</span>
+        <span class="badge badge-norm">EC3</span>
+        <span class="badge badge-ver">Streamlit</span>
+    </div>
+    <div style="margin-top: 15px; font-size: 0.9em;">
+        Versione 1.0 | Data: Aprile 2026
+    </div>
+</div>
+
+<div class="container">
+    <nav class="toc">
+        <h2>Indice dei Contenuti</h2>
+        <div class="toc-grid">
+            <a href="#panoramica">1. Panoramica</a>
+            <a href="#funzionalita">2. Funzionalità</a>
+            <a href="#input">3. Input Richiesti</a>
+            <a href="#output">4. Output Prodotti</a>
+            <a href="#normativa">5. Normativa</a>
+            <a href="#formule">6. Metodologia</a>
+            <a href="#esempio">7. Esempio</a>
+        </div>
+    </nav>
+
+    <section id="panoramica">
+        <h2>1. Panoramica Generale</h2>
+        <p>
+            <strong>Telaio2D Web</strong> è un'applicazione web interattiva per l'analisi statica lineare di strutture intelaiate 2D. 
+            L'applicazione permette di generare automaticamente la geometria di telai multipiano e multicampata, modificare i parametri 
+            strutturali tramite un'interfaccia intuitiva, eseguire l'analisi agli elementi finiti utilizzando il motore di calcolo OpenSeesPy, 
+            e visualizzare i risultati comprensivi di schema strutturale e deformata.
+        </p>
+        <div class="info-box">
+            <strong>Pubblico target:</strong> Ingegneri strutturali, progettisti, studenti di ingegneria civile.<br>
+            <strong>Scopo:</strong> Analisi lineare elastica di telai piani ai sensi delle NTC 2018.
+        </div>
+    </section>
+
+    <section id="funzionalita">
+        <h2>2. Funzionalità Principali</h2>
+        <div class="card-grid">
+            <div class="card">
+                <h4>🔧 Generatore Telaio</h4>
+                <p>Generazione automatica di telai 2D multipiano e multicampata specificando distanze campate e altezze piani.</p>
+            </div>
+            <div class="card">
+                <h4>📊 Editor XLSX</h4>
+                <p>Modifica interattiva di tutti i dati strutturali (nodi, elementi, proprietà, carichi, vincoli) tramite tabelle editabili.</p>
+            </div>
+            <div class="card">
+                <h4>⚙️ Solver OpenSeesPy</h4>
+                <p>Analisi statica lineare con elementi beam elastici, supporto per carichi distribuiti (uniformi e trapezoidali).</p>
+            </div>
+            <div class="card">
+                <h4>📈 Visualizzazione</h4>
+                <p>Render schema strutturale con vincoli, carichi e deformata scalabile. Visualizzazione immediata dei risultati.</p>
+            </div>
+            <div class="card">
+                <h4>📁 Export Risultati</h4>
+                <p>Esportazione del modello e dei risultati in formato Excel (.xlsx) per documentazione e ulteriori elaborazioni.</p>
+            </div>
+            <div class="card">
+                <h4>✓ Validazione</h4>
+                <p>Validazione automatica del modello strutturale prima dell'analisi, con segnalazione di errori e incoerenze.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="input">
+        <h2>3. Input Richiesti</h2>
+        
+        <h3>3.1 Fogli Obbligatori</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Foglio</th>
+                    <th>Colonne</th>
+                    <th>Descrizione</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>nodes</code></td>
+                    <td>id, x, y</td>
+                    <td>Coordinate nodi nel sistema di riferimento locale (m)</td>
+                </tr>
+                <tr>
+                    <td><code>elements</code></td>
+                    <td>id, n1, n2, prop, type</td>
+                    <td>Elementi finiti beam2d: nodo iniziale, finale, proprietà, tipo</td>
+                </tr>
+                <tr>
+                    <td><code>properties</code></td>
+                    <td>id, name, E, A, I, rho, alphaT</td>
+                    <td>Proprietà meccaniche sezione (E=modulo elastico, A=area, I=inerzia)</td>
+                </tr>
+                <tr>
+                    <td><code>load_cases</code></td>
+                    <td>id, name, ax, ay</td>
+                    <td>Casi di carico con accelerazioni gravitazionali</td>
+                </tr>
+                <tr>
+                    <td><code>restraints</code></td>
+                    <td>load_case_id, node_id, ux, uy, rz</td>
+                    <td>Vincoli nodali: 1=bloccato, 0=libero (ux=spostamento X, uy=Y, rz=rotazione)</td>
+                </tr>
+                <tr>
+                    <td><code>node_loads</code></td>
+                    <td>load_case_id, node_id, fx, fy, mz</td>
+                    <td>Carichi nodali concentrati (forze e momento)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>3.2 Fogli Opzionali</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Foglio</th>
+                    <th>Colonne</th>
+                    <th>Descrizione</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>dist_loads</code></td>
+                    <td>load_case_id, elem_id, qx0, qx1, qy0, qy1</td>
+                    <td>Carichi distribuiti trapezoidali (qx=orizzontale, qy=verticale, 0/inizio, 1/fine)</td>
+                </tr>
+                <tr>
+                    <td><code>masses</code></td>
+                    <td>load_case_id, node_id, mx, my</td>
+                    <td>Masse nodali per analisi dinamica (opzionale)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="warning-box">
+            <strong>Nota:</strong> I fogli opzionali, se presenti, devono contenere tutte le colonne specificate. La validazione segnala eventuali errori.
+        </div>
+    </section>
+
+    <section id="output">
+        <h2>4. Output Prodotti</h2>
+        
+        <h3>4.1 Risultati Nodali</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descrizione</th>
+                    <th>Unità</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>node_id</td>
+                    <td>Identificativo nodo</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>ux, uy</td>
+                    <td>Spostamenti nodali assoluti</td>
+                    <td>m</td>
+                </tr>
+                <tr>
+                    <td>rz</td>
+                    <td>Rotazione nodale</td>
+                    <td>rad</td>
+                </tr>
+                <tr>
+                    <td>Rx, Ry</td>
+                    <td>Reazioni vincolari in direzione X e Y</td>
+                    <td>N</td>
+                </tr>
+                <tr>
+                    <td>Rz</td>
+                    <td>Reazione momento</td>
+                    <td>N·m</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>4.2 Risultati Elementali</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descrizione</th>
+                    <th>Unità</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>Identificativo elemento</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>n1, n2</td>
+                    <td>Nodi iniziale e finale</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>N_i, N_j</td>
+                    <td>Sforzo normale agli estremi i e j (positivo=trazione)</td>
+                    <td>N</td>
+                </tr>
+                <tr>
+                    <td>V_i, V_j</td>
+                    <td>Taglio agli estremi i e j</td>
+                    <td>N</td>
+                </tr>
+                <tr>
+                    <td>M_i, M_j</td>
+                    <td>Momento flettente agli estremi i e j (positivo=tirante sopra)</td>
+                    <td>N·m</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="success-box">
+            <strong>Convenzione forze locali:</strong> Il sistema locale dell'elemento ha asse x dal nodo i al nodo j. 
+            Positive N e V seguono la convenzione dell'elemento beam di OpenSees.
+        </div>
+    </section>
+
+    <section id="normativa">
+        <h2>5. Normativa di Riferimento</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Normativa</th>
+                    <th>Riferimento</th>
+                    <th>Applicazione</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>NTC 2018</strong></td>
+                    <td>D.M. 17/01/2018</td>
+                    <td>Analisi strutturale, verifiche di resistenza, combinazioni carichi</td>
+                </tr>
+                <tr>
+                    <td><strong>EC3</strong></td>
+                    <td>EN 1993-1-1</td>
+                    <td>Progettazione strutture in acciaio (elementi beam)</td>
+                </tr>
+                <tr>
+                    <td><strong>EC2</strong></td>
+                    <td>EN 1992-1-1</td>
+                    <td>Progettazione strutture in calcestruzzo (sezioni composite)</td>
+                </tr>
+                <tr>
+                    <td><strong>OpenSees</strong></td>
+                    <td>Pacific Earthquake Engineering Research Center</td>
+                    <td>Motore di calcolo FEM per analisi strutturale</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box">
+            <strong>Conformità:</strong> L'applicazione implementa l'analisi statica lineare ai sensi delle NTC 2018, 
+            §7.3 (Costruzioni intelaiate). Le verifiche di resistenza successive (sollecitazioni vs. resistenze) 
+            sono a carico del progettista e possono essere eseguite con tool dedicati.
+        </div>
+    </section>
+
+    <section id="formule">
+        <h2>6. Metodologia di Calcolo</h2>
+
+        <h3>6.1 Formulazione Elemento Beam Elastico</h3>
+        <div class="formula-box">
+            <div class="label">Matrice di rigidità locale elemento beam 2D (6 DOF)</div>
+            <div class="formula">
+                K = [ EA/L &nbsp;&nbsp; 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -EA/L &nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0;<br>
+                0 &nbsp;&nbsp; 12EI/L³ &nbsp;&nbsp; 6EI/L² &nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp; -12EI/L³ &nbsp;&nbsp; 6EI/L²;<br>
+                0 &nbsp;&nbsp; 6EI/L² &nbsp;&nbsp; 4EI/L &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp; -6EI/L² &nbsp;&nbsp; 2EI/L;<br>
+                -EA/L &nbsp;&nbsp; 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; EA/L &nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0;<br>
+                0 &nbsp;&nbsp; -12EI/L³ -6EI/L² &nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp; 12EI/L³ &nbsp; -6EI/L²;<br>
+                0 &nbsp;&nbsp; 6EI/L² &nbsp;&nbsp; 2EI/L &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp; -6EI/L² &nbsp;&nbsp; 4EI/L ]
+            </div>
+        </div>
+
+        <h3>6.2 Sistema Globale</h3>
+        <div class="formula-box">
+            <div class="label">Trasformazione coordinate (geometric transformation)</div>
+            <div class="formula">
+                K_gлоб = Tᵀ · K_lосal · T
+            </div>
+        </div>
+        <p>dove T è la matrice di trasformazione che converte le grandezze dal sistema locale all sistema globale.</p>
+
+        <h3>6.3 Sistema Equazioni</h3>
+        <div class="formula-box">
+            <div class="label">Equazione equilibrio lineare</div>
+            <div class="formula">
+                K · u = F
+            </div>
+        </div>
+        <p>
+            <strong>K</strong> = matrice di rigidezza globale assemblata (6×n nodi)<br>
+            <strong>u</strong> = vettore spostamenti nodali incogniti<br>
+            <strong>F</strong> = vettore forze nodali equivalenti (carichi + pesi propri)
+        </p>
+
+        <h3>6.4 Carico Trapezoidale</h3>
+        <div class="formula-box">
+            <div class="label">Approssimazione carico distribuito trapezoidale</div>
+            <div class="formula">
+                q(y) = q₀ + (q₁ - q₀) · ξ &nbsp;&nbsp; con ξ ∈ [0,1]
+            </div>
+        </div>
+        <p>Il carico trapezoidale viene discretizzato in n segmenti uniformi (default: 10) per la compatibilità con OpenSeesPy.</p>
+
+        <div class="svg-container">
+            <h4>Schema Generale Analisi FEM</h4>
+            <svg width="600" height="220" viewBox="0 0 600 220">
+                <!-- Background -->
+                <rect width="600" height="220" fill="#fafbfc" rx="10"/>
+                
+                <!-- Input -->
+                <rect x="20" y="40" width="120" height="60" fill="#e8f4fd" stroke="#2980b9" stroke-width="2" rx="5"/>
+                <text x="80" y="72" text-anchor="middle" font-size="12" fill="#1a3a5c" font-weight="bold">INPUT</text>
+                <text x="80" y="88" text-anchor="middle" font-size="10" fill="#6c757d">XLSX Model</text>
+                
+                <!-- Validator -->
+                <rect x="170" y="40" width="120" height="60" fill="#fef5e7" stroke="#f39c12" stroke-width="2" rx="5"/>
+                <text x="230" y="72" text-anchor="middle" font-size="12" fill="#1a3a5c" font-weight="bold">VALIDATOR</text>
+                <text x="230" y="88" text-anchor="middle" font-size="10" fill="#6c757d">Check Schema</text>
+                
+                <!-- OpenSees -->
+                <rect x="320" y="40" width="120" height="60" fill="#e8f8f0" stroke="#27ae60" stroke-width="2" rx="5"/>
+                <text x="380" y="72" text-anchor="middle" font-size="12" fill="#1a3a5c" font-weight="bold">SOLVER</text>
+                <text x="380" y="88" text-anchor="middle" font-size="10" fill="#6c757d">OpenSeesPy</text>
+                
+                <!-- Output -->
+                <rect x="470" y="40" width="120" height="60" fill="#f4f6f9" stroke="#1a3a5c" stroke-width="2" rx="5"/>
+                <text x="530" y="72" text-anchor="middle" font-size="12" fill="#1a3a5c" font-weight="bold">OUTPUT</text>
+                <text x="530" y="88" text-anchor="middle" font-size="10" fill="#6c757d">Results XLSX</text>
+                
+                <!-- Arrows -->
+                <path d="M140 70 L170 70" stroke="#2980b9" stroke-width="2" fill="none" marker-end="url(#arrow1)"/>
+                <path d="M290 70 L320 70" stroke="#f39c12" stroke-width="2" fill="none" marker-end="url(#arrow1)"/>
+                <path d="M440 70 L470 70" stroke="#27ae60" stroke-width="2" fill="none" marker-end="url(#arrow1)"/>
+                
+                <!-- Arrow marker -->
+                <defs>
+                    <marker id="arrow1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#1a3a5c"/>
+                    </marker>
+                </defs>
+                
+                <!-- Bottom section -->
+                <rect x="170" y="140" width="260" height="60" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="5"/>
+                <text x="300" y="165" text-anchor="middle" font-size="11" fill="#1a3a5c" font-weight="bold">K · u = F</text>
+                <text x="300" y="185" text-anchor="middle" font-size="10" fill="#6c757d">System: n nodes × 3 DOF</text>
+                
+                <!-- Lines to equation -->
+                <line x1="80" y1="100" x2="80" y2="170" stroke="#dee2e6" stroke-width="1" stroke-dasharray="4"/>
+                <line x1="530" y1="100" x2="530" y2="170" stroke="#dee2e6" stroke-width="1" stroke-dasharray="4"/>
+            </svg>
+        </div>
+    </section>
+
+    <section id="esempio">
+        <h2>7. Esempio di Utilizzo</h2>
+
+        <h3>7.1 Generazione Telaio</h3>
+        <p>Il generatore crea automaticamente un telaio 3 campate × 3 piani:</p>
+        
+        <div class="svg-container">
+            <h4>Schema Telaio Esempio</h4>
+            <svg width="500" height="280" viewBox="0 0 500 280">
+                <!-- Grid -->
+                <defs>
+                    <pattern id="grid" width="50" height="35" patternUnits="userSpaceOnUse">
+                        <path d="M 50 0 L 0 0 0 35" fill="none" stroke="#e9ecef" stroke-width="1"/>
+                    </pattern>
+                </defs>
+                <rect width="500" height="280" fill="url(#grid)"/>
+                
+                <!-- Beam elements -->
+                <line x1="100" y1="50" x2="250" y2="50" stroke="#6c757d" stroke-width="4"/>
+                <line x1="250" y1="50" x2="400" y2="50" stroke="#6c757d" stroke-width="4"/>
+                
+                <line x1="100" y1="120" x2="250" y2="120" stroke="#6c757d" stroke-width="4"/>
+                <line x1="250" y1="120" x2="400" y2="120" stroke="#6c757d" stroke-width="4"/>
+                
+                <line x1="100" y1="190" x2="250" y2="190" stroke="#6c757d" stroke-width="4"/>
+                <line x1="250" y1="190" x2="400" y2="190" stroke="#6c757d" stroke-width="4"/>
+                
+                <!-- Column elements -->
+                <line x1="100" y1="50" x2="100" y2="190" stroke="#1a3a5c" stroke-width="5"/>
+                <line x1="250" y1="50" x2="250" y2="190" stroke="#1a3a5c" stroke-width="5"/>
+                <line x1="400" y1="50" x2="400" y2="190" stroke="#1a3a5c" stroke-width="5"/>
+                
+                <!-- Nodes -->
+                <circle cx="100" cy="50" r="6" fill="#2980b9"/>
+                <circle cx="250" cy="50" r="6" fill="#2980b9"/>
+                <circle cx="400" cy="50" r="6" fill="#2980b9"/>
+                <circle cx="100" cy="120" r="6" fill="#2980b9"/>
+                <circle cx="250" cy="120" r="6" fill="#2980b9"/>
+                <circle cx="400" cy="120" r="6" fill="#2980b9"/>
+                <circle cx="100" cy="190" r="6" fill="#2980b9"/>
+                <circle cx="250" cy="190" r="6" fill="#2980b9"/>
+                <circle cx="400" cy="190" r="6" fill="#2980b9"/>
+                
+                <!-- Restraints -->
+                <path d="M90 210 L110 210 L100 200 Z" fill="#e74c3c"/>
+                <line x1="95" y1="200" x2="105" y2="200" stroke="#e74c3c" stroke-width="2"/>
+                <line x1="245" y1="200" x2="255" y2="200" stroke="#e74c3c" stroke-width="2"/>
+                <line x1="395" y1="200" x2="405" y2="200" stroke="#e74c3c" stroke-width="2"/>
+                
+                <!-- Labels -->
+                <text x="100" y="30" text-anchor="middle" font-size="11" fill="#1a3a5c">3.0 m</text>
+                <text x="250" y="30" text-anchor="middle" font-size="11" fill="#1a3a5c">4.0 m</text>
+                <text x="400" y="30" text-anchor="middle" font-size="11" fill="#1a3a5c">3.0 m</text>
+                <text x="60" y="120" text-anchor="middle" font-size="11" fill="#1a3a5c" transform="rotate(-90,60,120)">3.5 m</text>
+                <text x="60" y="210" text-anchor="middle" font-size="11" fill="#1a3a5c" transform="rotate(-90,60,210)">3.0 m</text>
+                
+                <!-- Distributed load -->
+                <path d="M140 55 L140 75 L160 75 L160 55" fill="none" stroke="#f39c12" stroke-width="2"/>
+                <line x1="150" y1="55" x2="150" y2="75" stroke="#f39c12" stroke-width="1"/>
+                <text x="150" y="90" text-anchor="middle" font-size="10" fill="#f39c12">q = -2.0 kN/m</text>
+                
+                <!-- Legend -->
+                <rect x="320" y="210" width="160" height="50" fill="white" stroke="#dee2e6" rx="3"/>
+                <line x1="330" y1="225" x2="355" y2="225" stroke="#1a3a5c" stroke-width="3"/>
+                <text x="360" y="229" font-size="9" fill="#6c757d">Pilastri</text>
+                <line x1="330" y1="240" x2="355" y2="240" stroke="#6c757d" stroke-width="3"/>
+                <text x="360" y="244" font-size="9" fill="#6c757d">Travi</text>
+            </svg>
+        </div>
+
+        <h3>7.2 Parametri di Default</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parametro</th>
+                    <th>Valore</th>
+                    <th>Unità</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Campate</td>
+                    <td>3.0, 4.0, 3.0</td>
+                    <td>m</td>
+                </tr>
+                <tr>
+                    <td>Piani</td>
+                    <td>3.5, 3.0, 3.0</td>
+                    <td>m</td>
+                </tr>
+                <tr>
+                    <td>Modulo E</td>
+                    <td>30000</td>
+                    <td>MPa</td>
+                </tr>
+                <tr>
+                    <td>Area A</td>
+                    <td>0.30</td>
+                    <td>m²</td>
+                </tr>
+                <tr>
+                    <td>Inerzia I</td>
+                    <td>0.0225</td>
+                    <td>m⁴</td>
+                </tr>
+                <tr>
+                    <td>Carico distribuito</td>
+                    <td>-2.0</td>
+                    <td>kN/m</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>7.3 Comandi</h3>
+        <pre><code># Installazione
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+# Avvio applicazione
+streamlit run app.py</code></pre>
+    </section>
+
+</div>
+
+<footer>
+    <p><strong>Telaio2D Web</strong> — Documentazione Tecnica</p>
+    <p>Applicazione per analisi statica lineare di telai 2D</p>
+    <p>Il presente documento ha carattere puramente indicativo. I risultati dell'analisi strutturale</p>
+    <p>devono essere verificati da un ingegnere abilitato ai sensi delle NTC 2018.</p>
+    <p style="margin-top: 15px; font-size: 0.8em; opacity: 0.6;">© 2026 — Generato automaticamente</p>
+</footer>
+
+</body>
+</html>
