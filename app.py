@@ -4,8 +4,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from src import (
-    read_xlsx, write_xlsx, ensure_sheets, validate_sheets,
-    solve_linear_static_opensees, results_to_sheets
+    read_xlsx, write_xlsx, ensure_sheets, validate_sheets, results_to_sheets,
+    solve_linear_static_opensees, solve_modal_analysis_opensees,
+    solve_time_history_opensees
 )
 
 st.set_page_config(page_title="Telaio2D Web — OpenSeesPy", layout="wide")
@@ -86,6 +87,8 @@ if "sheets" not in st.session_state:
     st.session_state.sheets = None
 if "results" not in st.session_state:
     st.session_state.results = None
+if "modal_results" not in st.session_state:
+    st.session_state.modal_results = None
 if "initialized" not in st.session_state:
     st.session_state.initialized = True
 
@@ -113,6 +116,7 @@ with st.sidebar:
             sheets["node_loads"] = pd.DataFrame()
             st.session_state.sheets = ensure_sheets(sheets)
             st.session_state.results = None
+            st.session_state.modal_results = None
             st.success(f"Generato: {len(sheets['nodes'])} nodi, {len(sheets['elements'])} elementi")
         except Exception as e:
             st.error(f"Errore: {e}")
@@ -131,6 +135,7 @@ with st.sidebar:
         sheets["node_loads"] = pd.DataFrame()
         st.session_state.sheets = ensure_sheets(sheets)
         st.session_state.results = None
+        st.session_state.modal_results = None
         st.success("Esempio caricato!")
 
     if st.session_state.sheets is not None:
@@ -144,7 +149,7 @@ with st.sidebar:
     active_lc = st.selectbox("Load case attivo", lc_ids, index=0)
 
     st.divider()
-    st.header("Solve (OpenSeesPy)")
+    st.header("Analisi (OpenSeesPy)")
 
     if st.button("Valida modello"):
         if st.session_state.sheets is None:
@@ -156,6 +161,7 @@ with st.sidebar:
             else:
                 st.success("OK: input coerente.")
 
+    st.subheader("Analisi Statica Lineare")
     if st.button("Solve ▸ Linear Static"):
         if st.session_state.sheets is None:
             st.warning("Genera o carica un telaio prima.")
@@ -171,9 +177,48 @@ with st.sidebar:
                         trapezoid_segments=10,
                         geom_transf="Linear",
                     )
+                    st.session_state.modal_results = None
                     st.success("Analisi completata.")
                 except Exception as ex:
                     st.exception(ex)
+
+    st.subheader("Analisi Modale")
+    num_modes = st.number_input("Numero di modi", min_value=1, max_value=20, value=3, step=1)
+    if st.button("Solve ▸ Modal Analysis"):
+        if st.session_state.sheets is None:
+            st.warning("Genera o carica un telaio prima.")
+        else:
+            errs = validate_sheets(st.session_state.sheets)
+            if errs:
+                st.error("Correggi prima gli errori:\n" + "\n".join([f"• {e}" for e in errs]))
+            else:
+                try:
+                    st.session_state.modal_results = solve_modal_analysis_opensees(
+                        st.session_state.sheets,
+                        int(active_lc),
+                        int(num_modes),
+                    )
+                    st.session_state.results = None
+                    st.success("Analisi modale completata.")
+                except Exception as ex:
+                    st.exception(ex)
+
+    st.subheader("Analisi Dinamica Lineare")
+    damping_ratio = st.number_input("Rapporto di smorzamento (ksi)", min_value=0.0, max_value=0.5, value=0.05, step=0.01)
+    if st.button("Solve ▸ Time History"):
+        st.warning("Funzionalità in sviluppo.")
+        # if st.session_state.sheets is None:
+        #     st.warning("Genera o carica un telaio prima.")
+        # else:
+        #     try:
+        #         st.session_state.th_results = solve_time_history_opensees(
+        #             st.session_state.sheets,
+        #             int(active_lc),
+        #             damping_ratio=damping_ratio
+        #         )
+        #         st.success("Analisi time history completata.")
+        #     except Exception as ex:
+        #         st.exception(ex)
 
     st.divider()
     st.header("Export")
@@ -187,7 +232,7 @@ with st.sidebar:
         st.warning("Genera o carica un telaio prima.")
 
 
-labels = ["nodes", "elements", "properties", "load_cases", "restraints", "node_loads", "dist_loads", "masses", "results", "plot"]
+labels = ["nodes", "elements", "properties", "load_cases", "restraints", "node_loads", "dist_loads", "masses", "ground_motions", "results", "plot"]
 tabs = st.tabs(labels)
 
 
@@ -236,17 +281,31 @@ with tabs[7]:
     st.subheader("masses (load_case_id, node_id, mx, my)")
     edit_sheet("masses", ["load_case_id", "node_id", "mx", "my"])
 
-with tabs[8]:
-    st.subheader("results")
-    if st.session_state.results is None:
-        st.info("Esegui Solve per vedere i risultati.")
-    else:
-        st.markdown("### results_nodal")
-        st.dataframe(st.session_state.results["results_nodal"], use_container_width=True)
-        st.markdown("### results_elements (localForce → N,V,M)")
-        st.dataframe(st.session_state.results["results_elements"], use_container_width=True)
+with tabs[8]: # ground_motions
+    st.subheader("ground_motions (load_case_id, time, accel_x, accel_y)")
+    st.caption("Accelerogramma per analisi dinamica. `accel_y` non ancora implementato.")
+    edit_sheet("ground_motions", ["load_case_id", "time", "accel_x", "accel_y"])
 
 with tabs[9]:
+    st.subheader("results")
+    if st.session_state.results is None and st.session_state.modal_results is None:
+        st.info("Esegui Solve per vedere i risultati.")
+
+    if st.session_state.results is not None:
+        st.markdown("### Risultati Analisi Statica")
+        st.markdown("#### Spostamenti e Reazioni Nodali")
+        st.dataframe(st.session_state.results["results_nodal"], use_container_width=True)
+        st.markdown("#### Forze Interne Elementi (locali)")
+        st.dataframe(st.session_state.results["results_elements"], use_container_width=True)
+
+    if st.session_state.modal_results is not None:
+        st.markdown("### Risultati Analisi Modale")
+        st.markdown("#### Proprietà Modali")
+        st.dataframe(st.session_state.modal_results["modal_properties"], use_container_width=True)
+        with st.expander("Mostra vettori modali (dati)"):
+            st.dataframe(st.session_state.modal_results["mode_shapes"], use_container_width=True)
+
+with tabs[10]:
     st.subheader("plot (schema + deformata)")
     if st.session_state.sheets is None:
         st.warning("Genera o carica un telaio prima.")
@@ -323,15 +382,16 @@ with tabs[9]:
                 fig.add_trace(go.Scatter(x=[x1, x2], y=[y1, y2], mode="lines", line=dict(color="#888", width=3), showlegend=False, name="Trave"))
 
             # Deformata
-            if st.session_state.results is not None:
-                scale = st.slider("Scala deformata", 0.0, 500.0, 50.0, 1.0)
+            if st.session_state.results:
+                st.subheader("Deformata Statica")
+                scale = st.slider("Scala deformata", 0.0, 500.0, 50.0, 1.0, key="scale_static")
                 disp = st.session_state.results["results_nodal"].set_index("node_id")
                 dcoords = {}
                 for nid, (x, y) in coords.items():
                     ux = float(disp.loc[nid, "ux"]) if nid in disp.index else 0.0
                     uy = float(disp.loc[nid, "uy"]) if nid in disp.index else 0.0
                     dcoords[nid] = (x + scale * ux, y + scale * uy)
-
+    
                 for _, e in elems.iterrows():
                     if str(e.get("type", "")).strip().lower() != "beam2d":
                         continue
@@ -339,7 +399,28 @@ with tabs[9]:
                     if n1 not in dcoords or n2 not in dcoords:
                         continue
                     x1, y1 = dcoords[n1]; x2, y2 = dcoords[n2]
-                    fig.add_trace(go.Scatter(x=[x1, x2], y=[y1, y2], mode="lines", line=dict(color="#1f77b4", width=3), showlegend=False))
+                    fig.add_trace(go.Scatter(x=[x1, x2], y=[y1, y2], mode="lines", line=dict(color="#1f77b4", width=3), name="Deformata statica"))
+
+            # Forme Modali
+            if st.session_state.modal_results:
+                st.subheader("Visualizzazione Forme Modali")
+                modes_df = st.session_state.modal_results["modal_properties"]
+                mode_info = {r['mode']: f"Modo {r['mode']} (T={r['period_s']:.2f}s)" for _, r in modes_df.iterrows()}
+                mode_to_show = st.selectbox("Seleziona modo da visualizzare", list(mode_info.keys()), format_func=lambda x: mode_info[x])
+                
+                scale_modal = st.slider("Scala forma modale", 0.0, 1.0, 0.2, 0.01, key="scale_modal", help="Scala rispetto alla dimensione massima della struttura.")
+                
+                all_shapes = st.session_state.modal_results["mode_shapes"]
+                shape_disp = all_shapes[all_shapes["mode"] == mode_to_show].set_index("node_id")
+                
+                max_dim = max(max(nodes.x)-min(nodes.x), max(nodes.y)-min(nodes.y))
+
+                for _, e in elems.iterrows():
+                    n1, n2 = int(e["n1"]), int(e["n2"])
+                    x1, y1 = coords[n1]; x2, y2 = coords[n2]
+                    ux1, uy1 = shape_disp.loc[n1, ["ux", "uy"]]
+                    ux2, uy2 = shape_disp.loc[n2, ["ux", "uy"]]
+                    fig.add_trace(go.Scatter(x=[x1 + scale_modal*max_dim*ux1, x2 + scale_modal*max_dim*ux2], y=[y1 + scale_modal*max_dim*uy1, y2 + scale_modal*max_dim*uy2], mode="lines", line=dict(color="#ff7f0e", width=3, dash='dash'), name=f"Forma modale {mode_to_show}"))
 
             fig.update_layout(xaxis=dict(scaleanchor="y", title="X"), yaxis=dict(title="Y"), margin=dict(l=10, r=10, t=10, b=10), height=600)
             st.plotly_chart(fig, use_container_width=True)

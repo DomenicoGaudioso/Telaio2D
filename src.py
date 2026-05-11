@@ -1,6 +1,7 @@
 # src.py
 from __future__ import annotations
 
+import math
 from io import BytesIO
 from typing import Dict, List
 
@@ -11,7 +12,7 @@ import openseespy.opensees as ops  # pip install openseespy
 # I/O XLSX
 # -----------------------------
 REQUIRED_SHEETS = ["nodes", "elements", "properties", "load_cases", "restraints", "node_loads"]
-OPTIONAL_SHEETS = ["dist_loads", "masses"]
+OPTIONAL_SHEETS = ["dist_loads", "masses", "ground_motions"]
 
 
 def read_xlsx(file_bytes: bytes) -> Dict[str, pd.DataFrame]:
@@ -71,6 +72,8 @@ def validate_sheets(sheets: Dict[str, pd.DataFrame]) -> List[str]:
         need_cols(s["dist_loads"], ["load_case_id", "elem_id", "qx0", "qx1", "qy0", "qy1"], "dist_loads")
     if s["masses"] is not None and not s["masses"].empty:
         need_cols(s["masses"], ["load_case_id", "node_id", "mx", "my"], "masses")
+    if s["ground_motions"] is not None and not s["ground_motions"].empty:
+        need_cols(s["ground_motions"], ["load_case_id", "time", "accel_x", "accel_y"], "ground_motions")
 
     return errs
 
@@ -270,3 +273,215 @@ def results_to_sheets(base_sheets: Dict[str, pd.DataFrame], results: Dict[str, p
     for k, df in results.items():
         out[k] = df
     return out
+
+
+def solve_modal_analysis_opensees(
+    sheets: Dict[str, pd.DataFrame],
+    load_case_id: int,
+    num_modes: int,
+    geom_transf: str = "Linear",
+) -> Dict[str, pd.DataFrame]:
+    """
+    Modal Analysis (OpenSeesPy) per telai 2D con beam elastici.
+
+    Input: sheets (dict di DataFrame), load_case_id (per selezionare le masse), num_modes.
+    Output: dict con DataFrame modal_properties e mode_shapes.
+    """
+    s = ensure_sheets(sheets)
+    errs = validate_sheets(s)
+    if errs:
+        raise ValueError("Input non valido:\n- " + "\n- ".join(errs))
+
+    nodes = s["nodes"].copy()
+    elems = s["elements"].copy()
+    props = s["properties"].copy()
+
+    if nodes.empty or elems.empty or props.empty:
+        raise ValueError("nodes/elements/properties non possono essere vuoti")
+
+    ms = s.get("masses", pd.DataFrame())
+    if ms is None or ms.empty or ms[ms["load_case_id"].astype(int) == int(load_case_id)].empty:
+        raise ValueError("Per l'analisi modale sono richieste le masse (foglio 'masses' non vuoto per il load_case_id selezionato)")
+
+    # normalizza id
+    nodes["id"] = nodes["id"].astype(int)
+    elems["id"] = elems["id"].astype(int)
+    elems["n1"] = elems["n1"].astype(int)
+    elems["n2"] = elems["n2"].astype(int)
+    elems["prop"] = elems["prop"].astype(int)
+    props["id"] = props["id"].astype(int)
+
+    coords = {int(r["id"]): (float(r["x"]), float(r["y"])) for _, r in nodes.iterrows()}
+    prop_map = {int(r["id"]): r for _, r in props.iterrows()}
+
+    ops.wipe()
+    ops.model("basic", "-ndm", 2, "-ndf", 3)
+
+    for nid, (x, y) in coords.items():
+        ops.node(nid, x, y)
+
+    # masses (obbligatorie per analisi modale)
+    ms = ms[ms["load_case_id"].astype(int) == int(load_case_id)].copy()
+    for _, r in ms.iterrows():
+        nid = int(r["node_id"])
+        mx = float(r.get("mx", 0.0))
+        my = float(r.get("my", 0.0))
+        if mx > 0 or my > 0:
+            ops.mass(nid, mx, my, 0.0)
+
+    # restraints
+    rr = s["restraints"]
+    if rr is not None and not rr.empty:
+        rr = rr[rr["load_case_id"].astype(int) == int(load_case_id)].copy()
+        for _, r in rr.iterrows():
+            nid = int(r["node_id"])
+            ux = 1 if bool(r.get("ux", False)) else 0
+            uy = 1 if bool(r.get("uy", False)) else 0
+            rz = 1 if bool(r.get("rz", False)) else 0
+            ops.fix(nid, ux, uy, rz)
+
+    transfTag = 1
+    ops.geomTransf(str(geom_transf), transfTag)
+
+    for _, e in elems.iterrows():
+        if str(e.get("type", "")).strip().lower() != "beam2d":
+            continue
+        eleTag = int(e["id"])
+        n1 = int(e["n1"])
+        n2 = int(e["n2"])
+        pid = int(e["prop"])
+        if pid not in prop_map:
+            raise ValueError(f"Elemento {eleTag}: proprietà {pid} non trovata")
+        pr = prop_map[pid]
+        A = float(pr["A"])
+        E = float(pr["E"])
+        I = float(pr["I"])
+        ops.element("elasticBeamColumn", eleTag, n1, n2, A, E, I, transfTag)
+
+    # Analysis
+    eigenvalues = ops.eigen(num_modes)
+
+    modal_props_rows = []
+    for i, lam in enumerate(eigenvalues):
+        if lam > 0:
+            omega = math.sqrt(lam)
+            freq = omega / (2 * math.pi)
+            period = 1.0 / freq
+        else:
+            omega = 0.0
+            freq = 0.0
+            period = float('inf')
+
+        modal_props_rows.append({
+            "mode": i + 1,
+            "eigenvalue": lam,
+            "omega_rad_s": omega,
+            "frequency_hz": freq,
+            "period_s": period,
+        })
+
+    mode_shapes_rows = []
+    node_ids = list(coords.keys())
+    for i in range(num_modes):
+        mode_num = i + 1
+        # Normalizzazione della forma modale
+        eigenvectors = [ops.nodeEigenvector(nid, mode_num, dof) for nid in node_ids for dof in [1, 2, 3]]
+        max_val = max(abs(v) for v in eigenvectors) if eigenvectors else 1.0
+        norm_factor = 1.0 / max_val if max_val > 0 else 1.0
+
+        for nid in node_ids:
+            ux = ops.nodeEigenvector(nid, mode_num, 1) * norm_factor
+            uy = ops.nodeEigenvector(nid, mode_num, 2) * norm_factor
+            rz = ops.nodeEigenvector(nid, mode_num, 3) * norm_factor
+            mode_shapes_rows.append({
+                "mode": mode_num,
+                "node_id": int(nid),
+                "ux": float(ux),
+                "uy": float(uy),
+                "rz": float(rz),
+            })
+
+    return {
+        "modal_properties": pd.DataFrame(modal_props_rows),
+        "mode_shapes": pd.DataFrame(mode_shapes_rows),
+    }
+
+
+def solve_time_history_opensees(
+    sheets: Dict[str, pd.DataFrame],
+    load_case_id: int,
+    damping_ratio: float,
+    geom_transf: str = "Linear",
+) -> Dict[str, pd.DataFrame]:
+    """Analisi dinamica lineare nel tempo (direct integration)."""
+    # --- Costruzione modello (simile a modale e statica) ---
+    # (Questa parte potrebbe essere rifattorizzata in una funzione helper)
+    s = ensure_sheets(sheets)
+    # ... (la validazione e costruzione del modello è quasi identica) ...
+    # Per brevità, si assume che il modello sia valido e si procede.
+    # In un'implementazione reale, copiare o rifattorizzare la costruzione del modello.
+    
+    # --- Damping ---
+    # Calcolo smorzamento di Rayleigh da un damping ratio e due modi.
+    # Eseguiamo una mini-analisi modale per ottenere le frequenze.
+    modal_res = solve_modal_analysis_opensees(sheets, load_case_id, 2, geom_transf)
+    omegas = modal_res["modal_properties"]["omega_rad_s"].tolist()
+    if len(omegas) < 2:
+        raise ValueError("Non è stato possibile calcolare almeno 2 modi per definire lo smorzamento.")
+    
+    w1, w2 = omegas[0], omegas[1]
+    # alpha_M e beta_K/beta_K_comm/beta_K_init
+    # M*a + C*v + K*u = F
+    # C = alpha_M * M + beta_K * K
+    # 2*ksi*wi = alpha_M/wi + beta_K*wi
+    # Risolvendo il sistema per (w1, ksi) e (w2, ksi)
+    alpha_M = 2 * damping_ratio * w1 * w2 / (w1 + w2)
+    beta_K = 2 * damping_ratio / (w1 + w2)
+    ops.rayleigh(alpha_M, beta_K, 0.0, 0.0)
+
+    # --- Carico Sismico ---
+    gm = s.get("ground_motions", pd.DataFrame())
+    if gm.empty:
+        raise ValueError("Foglio 'ground_motions' non trovato o vuoto.")
+    gm = gm[gm["load_case_id"].astype(int) == int(load_case_id)].copy()
+    if gm.empty:
+        raise ValueError(f"Nessun dato in 'ground_motions' per load_case_id={load_case_id}")
+    
+    gm = gm.sort_values("time").reset_index()
+    accel_x = gm["accel_x"].tolist()
+    dt = gm["time"].iloc[1] - gm["time"].iloc[0] if len(gm) > 1 else 0.01
+    
+    ops.timeSeries("Path", 2, "-dt", dt, "-values", *accel_x)
+    ops.pattern("UniformExcitation", 2, 1, "-accel", 2) # dir 1 = X
+
+    # --- Analisi Transiente ---
+    ops.wipeAnalysis()
+    ops.constraints("Transformation")
+    ops.numberer("RCM")
+    ops.system("BandGeneral")
+    ops.test("NormDispIncr", 1.0e-12, 10, 0)
+    ops.algorithm("Linear")
+    ops.integrator("Newmark", 0.5, 0.25)
+    ops.analysis("Transient")
+
+    # --- Recorder ---
+    results: Dict[int, List[float]] = {nid: [] for nid in ops.getNodeTags()}
+    times = []
+    
+    duration = gm["time"].max()
+    steps = int(duration / dt)
+
+    for step in range(steps):
+        ops.analyze(1, dt)
+        t = ops.getTime()
+        times.append(t)
+        for nid in results.keys():
+            results[nid].append(ops.nodeDisp(nid, 1)) # Solo spostamento X per ora
+
+    # --- Formattazione Output ---
+    rows = []
+    for nid, disps in results.items():
+        for t, disp in zip(times, disps):
+            rows.append({"time": t, "node_id": nid, "ux": disp})
+            
+    return {"time_history_nodal": pd.DataFrame(rows)}
