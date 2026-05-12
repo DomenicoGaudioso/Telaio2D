@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "id": "cantilever_tip_load_timoshenko_gere",
+    "titolo": "Mensola con carico concentrato in punta",
+    "fonte": "Timoshenko & Gere, Theory of Elastic Stability / teoria classica delle travi di Eulero-Bernoulli",
+    "data_generazione": "2026-05-12",
+    "autore": "CivilBox"
+  },
+  "load_case_id": 1,
+  "input": {
+    "nodes": [
+      { "id": 1, "x": 0.0, "y": 0.0 },
+      { "id": 2, "x": 1.0, "y": 0.0 }
+    ],
+    "elements": [
+      { "id": 1, "n1": 1, "n2": 2, "prop": 1, "type": "beam2d" }
+    ],
+    "properties": [
+      { "id": 1, "name": "beam", "E": 210000.0, "A": 0.01, "I": 0.000001, "rho": 0.0, "alphaT": 0.0 }
+    ],
+    "load_cases": [
+      { "id": 1, "name": "LC1", "ax": 0.0, "ay": 0.0 }
+    ],
+    "restraints": [
+      { "load_case_id": 1, "node_id": 1, "ux": true, "uy": true, "rz": true }
+    ],
+    "node_loads": [
+      { "load_case_id": 1, "node_id": 2, "fx": 0.0, "fy": -10.0, "mz": 0.0 }
+    ],
+    "dist_loads": [],
+    "masses": []
+  },
+  "risultati_attesi": {
+    "uy_tip": {
+      "path": "results_nodal.2.uy",
+      "valore": -15.873015873015875,
+      "unita": "m",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Delta = P L^3 / 3EI con segno negativo."
+    },
+    "rz_tip": {
+      "path": "results_nodal.2.rz",
+      "valore": -23.809523809523814,
+      "unita": "rad",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Rotazione = P L^2 / 2EI con segno negativo."
+    },
+    "Ry_base": {
+      "path": "results_nodal.1.Ry",
+      "valore": 10.0,
+      "unita": "forza",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Reazione verticale alla base."
+    },
+    "M_base": {
+      "path": "results_elements.1.M_i",
+      "valore": 10.0,
+      "unita": "forza*lunghezza",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Momento alla base della mensola."
+    }
+  },
+  "esito_atteso": "VERIFICATO",
+  "note_test": "Benchmark chiuso in forma analitica per validare rigidezza beam2d, vincoli e reazioni."
+}
