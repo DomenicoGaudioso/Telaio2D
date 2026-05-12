@@ -5,3 +5,4 @@ numpy>=1.26
 plotly>=5.20
 openseespy>=3.8.0.0
 pytest>=8.0
+python-docx>=1.1

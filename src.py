@@ -97,6 +97,126 @@ def default_model() -> Dict[str, pd.DataFrame]:
     )
 
 
+def generate_multistory_multibay_frame(
+    n_bays: int = 2,
+    n_stories: int = 3,
+    bay_width: float = 5.0,
+    story_height: float = 3.2,
+    E: float = 30000000.0,
+    A: float = 0.12,
+    I: float = 0.0036,
+    q_beams: float = -18.0,
+    horizontal_load_per_floor: float = 0.0,
+    load_case_id: int = 1,
+) -> Dict[str, pd.DataFrame]:
+    """Generate a regular 2D building frame model.
+
+    Nodes are laid out on a rectangular grid, base nodes are fully fixed, all
+    columns and floor beams share one property, and floor beams receive an
+    optional uniform local-y distributed load.
+    """
+    n_bays = int(n_bays)
+    n_stories = int(n_stories)
+    if n_bays < 1:
+        raise ValueError("Il numero di campate deve essere almeno 1.")
+    if n_stories < 1:
+        raise ValueError("Il numero di piani deve essere almeno 1.")
+    if bay_width <= 0 or story_height <= 0:
+        raise ValueError("Larghezza campata e altezza piano devono essere positive.")
+    if E <= 0 or A <= 0 or I <= 0:
+        raise ValueError("E, A e I devono essere positivi.")
+
+    def node_id(level: int, column: int) -> int:
+        return level * (n_bays + 1) + column + 1
+
+    nodes = [
+        {"id": node_id(level, column), "x": column * bay_width, "y": level * story_height}
+        for level in range(n_stories + 1)
+        for column in range(n_bays + 1)
+    ]
+
+    elements = []
+    element_id = 1
+    for story in range(n_stories):
+        for column in range(n_bays + 1):
+            elements.append(
+                {
+                    "id": element_id,
+                    "n1": node_id(story, column),
+                    "n2": node_id(story + 1, column),
+                    "prop": 1,
+                    "type": "beam2d",
+                }
+            )
+            element_id += 1
+
+    beam_element_ids = []
+    for level in range(1, n_stories + 1):
+        for bay in range(n_bays):
+            beam_element_ids.append(element_id)
+            elements.append(
+                {
+                    "id": element_id,
+                    "n1": node_id(level, bay),
+                    "n2": node_id(level, bay + 1),
+                    "prop": 1,
+                    "type": "beam2d",
+                }
+            )
+            element_id += 1
+
+    restraints = [
+        {"load_case_id": load_case_id, "node_id": node_id(0, column), "ux": True, "uy": True, "rz": True}
+        for column in range(n_bays + 1)
+    ]
+
+    node_loads = [
+        {
+            "load_case_id": load_case_id,
+            "node_id": node_id(level, n_bays),
+            "fx": float(horizontal_load_per_floor),
+            "fy": 0.0,
+            "mz": 0.0,
+        }
+        for level in range(1, n_stories + 1)
+    ]
+    if not node_loads:
+        node_loads = [{"load_case_id": load_case_id, "node_id": node_id(n_stories, n_bays), "fx": 0.0, "fy": 0.0, "mz": 0.0}]
+
+    dist_loads = [
+        {"load_case_id": load_case_id, "elem_id": eid, "qx0": 0.0, "qx1": 0.0, "qy0": q_beams, "qy1": q_beams}
+        for eid in beam_element_ids
+        if q_beams != 0.0
+    ]
+
+    return ensure_sheets(
+        {
+            "nodes": pd.DataFrame(nodes),
+            "elements": pd.DataFrame(elements),
+            "properties": pd.DataFrame(
+                [
+                    {
+                        "id": 1,
+                        "name": "Telaio multipiano CivilBox",
+                        "E": float(E),
+                        "A": float(A),
+                        "I": float(I),
+                        "rho": 0.0,
+                        "alphaT": 0.0,
+                    }
+                ]
+            ),
+            "load_cases": pd.DataFrame(
+                [{"id": load_case_id, "name": "Generato CivilBox", "ax": 0.0, "ay": 0.0}]
+            ),
+            "restraints": pd.DataFrame(restraints),
+            "node_loads": pd.DataFrame(node_loads),
+            "dist_loads": pd.DataFrame(dist_loads),
+            "masses": pd.DataFrame(),
+        }
+    )
+
+
 def validate_model(sheets: Dict[str, pd.DataFrame]) -> List[str]:
     errors: List[str] = []
     sheets = ensure_sheets(sheets)

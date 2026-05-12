@@ -1,0 +1,88 @@
+{
+  "meta": {
+    "id": "simply_supported_beam_uniform_load",
+    "titolo": "Trave appoggiata con carico distribuito uniforme",
+    "fonte": "Formula classica di trave Euler-Bernoulli appoggiata-appoggiata",
+    "data_generazione": "2026-05-12",
+    "autore": "CivilBox"
+  },
+  "load_case_id": 1,
+  "input": {
+    "nodes": [
+      { "id": 1, "x": 0.0, "y": 0.0 },
+      { "id": 2, "x": 6.0, "y": 0.0 }
+    ],
+    "elements": [
+      { "id": 1, "n1": 1, "n2": 2, "prop": 1, "type": "beam2d" }
+    ],
+    "properties": [
+      { "id": 1, "name": "beam", "E": 30000000.0, "A": 0.09, "I": 0.000675, "rho": 0.0, "alphaT": 0.0 }
+    ],
+    "load_cases": [
+      { "id": 1, "name": "LC1", "ax": 0.0, "ay": 0.0 }
+    ],
+    "restraints": [
+      { "load_case_id": 1, "node_id": 1, "ux": true, "uy": true, "rz": false },
+      { "load_case_id": 1, "node_id": 2, "ux": false, "uy": true, "rz": false }
+    ],
+    "node_loads": [
+      { "load_case_id": 1, "node_id": 1, "fx": 0.0, "fy": 0.0, "mz": 0.0 }
+    ],
+    "dist_loads": [
+      { "load_case_id": 1, "elem_id": 1, "qx0": 0.0, "qx1": 0.0, "qy0": -20.0, "qy1": -20.0 }
+    ],
+    "masses": []
+  },
+  "risultati_attesi": {
+    "Ry_left": {
+      "path": "results_nodal.1.Ry",
+      "valore": 60.0,
+      "unita": "forza",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Reazione verticale qL/2."
+    },
+    "Ry_right": {
+      "path": "results_nodal.2.Ry",
+      "valore": 60.0,
+      "unita": "forza",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Reazione verticale qL/2."
+    },
+    "rz_left": {
+      "path": "results_nodal.1.rz",
+      "valore": -0.008888888888888889,
+      "unita": "rad",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Rotazione appoggio sinistro = -qL^3/24EI con q verso il basso."
+    },
+    "rz_right": {
+      "path": "results_nodal.2.rz",
+      "valore": 0.008888888888888889,
+      "unita": "rad",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Rotazione appoggio destro = qL^3/24EI con q verso il basso."
+    },
+    "M_left": {
+      "path": "results_elements.1.M_i",
+      "valore": 0.0,
+      "unita": "forza*lunghezza",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Momento nullo all'appoggio semplice."
+    },
+    "M_right": {
+      "path": "results_elements.1.M_j",
+      "valore": 0.0,
+      "unita": "forza*lunghezza",
+      "tolleranza_percentuale": 0.001,
+      "tolleranza_assoluta": 0.000000001,
+      "nota": "Momento nullo all'appoggio semplice."
+    }
+  },
+  "esito_atteso": "VERIFICATO",
+  "note_test": "Benchmark analitico per validare carichi distribuiti equivalenti, appoggi semplici e rotazioni nodali."
+}
